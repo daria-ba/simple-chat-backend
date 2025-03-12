@@ -1,12 +1,10 @@
-const { database } = require('../config/database');
+const { database } = require('../configs/database');
 
 const createChannel = async (user_id, name, is_private) => {
   const { data, error } = await database
   .from('channels')
-  .insert([{ 
-    id: uuidv4(),
+  .insert([{
     name,
-    user_id,
     is_private
   }])
   .select();
@@ -18,23 +16,35 @@ const createChannel = async (user_id, name, is_private) => {
 const getAllChannels = async () => {
     const { data, error } = await database
     .from('channels')
-    .select('id, name, user_id, is_private, created_at')
+    .select('id, name, created_by, created_at, is_private, is_removable')
     .order('created_at', { ascending: false });
-
+    
     if (error) throw new Error(error.message);
     return data;
 };
 
-const deleteChannel = async (channel_id, user_id) => {
+const deleteChannel = async (channel_id) => {
+  console.log('delete channel id', channel_id)
   const { data: channel, error: channelError } = await database
     .from('channels')
-    .select('user_id')
+    .select('id')
     .eq('id', channel_id)
     .single();
 
-    if (channelError || !channel) throw new Error('Канал не найден.');
-    if (channel.user_id !== user_id) throw new Error('Нет прав для удаления этого канала.');
+    if (channelError || !channel) {
+      console.error("Ошибка поиска канала:", channelError?.message || "Канал не найден.");
+      throw new Error("Канал не найден.");
+    }
 
+    const { error: messagesError } = await database
+    .from("messages")
+    .delete()
+    .eq("channel_id", channel_id);
+
+  if (messagesError) {
+    console.error("Ошибка удаления сообщений:", messagesError.message);
+    throw new Error("Не удалось удалить сообщения, связанные с каналом.");
+  }
     const { error } = await database
     .from('channels')
     .delete()
@@ -46,10 +56,9 @@ const deleteChannel = async (channel_id, user_id) => {
 }
 
 const updateChannel = async (channel_id, user_id, new_name) => {
-
   const { data: channel, error: channelError } = await database
   .from('channels')
-  .select('user_id')
+  .select('created_by')
   .eq('id', channel_id)
   .single();
 
