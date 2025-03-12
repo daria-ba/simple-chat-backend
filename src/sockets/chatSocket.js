@@ -1,3 +1,4 @@
+import { channel } from 'diagnostics_channel';
 import { Server } from 'socket.io';
 
 export default (server) => {
@@ -12,6 +13,10 @@ export default (server) => {
       io.to(message.channel_id).emit('newMessage', message);
     });
 
+    socket.on('sendChannel', (channel) => {
+      io.to(channel.channel_id).emit('newChannel', channel);
+    });
+
     socket.on('joinChannel', (channel_id) => {
       socket.join(channel_id);
     });
@@ -21,3 +26,8 @@ export default (server) => {
     });
   });
 };
+
+// //newMessage
+// //newChannel
+// //removeChannel
+// //renameChannel

@@ -1,14 +1,13 @@
-const { database } = require('../config/database');
+const { database } = require('../configs/database');
 
-const registerUser = async (username, login, password) => {
-    const userData = { username, login, password };
+const registerUser = async (login, hashedPassword) => {
+    const userData = { login, hashed_password: hashedPassword };
+    console.log('userdata in registeruser', userData);
     try {
-        const response = await database
+        const {data, error} = await database
         .from('users')
         .insert([userData])
         .select();
-
-        const { data, error } = response;
 
         if (error) {
             console.error('Ошибка в registerUser:', error.message);
@@ -24,7 +23,7 @@ const registerUser = async (username, login, password) => {
 const findUserByLogin = async (login) => {
     const { data, error } = await database
     .from('users')
-    .select('login')
+    .select('id, login, hashed_password')
     .eq('login', login)
     .maybeSingle();
     if (error) throw new Error(error.message);
